@@ -1,0 +1,28 @@
+# Node.js
+node_modules/
+dist/
+build/
+
+# React
+public/
+src/
+*.env
+
+# Vite
+.vite/
+
+# Electron
+/electron-dist/
+/electron-builder/
+
+# Django
+*.pyc
+*.pyo
+__pycache__/
+db.sqlite3
+/staticfiles/
+media/
+*.log
+
+# .env local
+.env.local
