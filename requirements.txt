@@ -1,3 +1,6 @@
 django
 djangorestframework
 channels
+psycopg2-binary 
+djangorestframework-simplejwt
+djangorestframework-simplejwt[blacklist]
