@@ -38,8 +38,6 @@ class LogoutView(APIView):
     """
     Vista para manejar la revocación del JWT cuando el usuario cierra sesión.
     """
-    permission_classes = [permissions.IsAuthenticated]
-
     def post(self, request, *args, **kwargs):
         try:
             refresh_token = request.data.get('refresh')
