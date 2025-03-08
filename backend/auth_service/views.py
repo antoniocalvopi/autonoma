@@ -1,6 +1,7 @@
 # auth_service/views.py
+from tokenize import TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -55,3 +56,64 @@ class CreateUserView(APIView):
             user = serializer.save()
             return Response({"message": "User created successfully!"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class GetUserProfileView(APIView):
+    """
+    Vista para obtener el perfil del usuario autenticado.   
+    """
+    def get(self, request, *args, **kwargs):
+        # Obtener el token desde el encabezado 'Authorization'
+        auth_header = request.headers.get('Authorization')
+
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]  # Extraer el token después de 'Bearer'
+            try:
+                # Validar el token con SimpleJWT
+                access_token = AccessToken(token)
+                
+                # Obtener el usuario asociado al token
+                user = User.objects.get(id=access_token['user_id'])  
+
+                # Serializar la información del usuario
+                serializer = UserSerializer(user)
+                return Response(serializer.data)
+            except (TokenError, Exception) as e:
+                return Response({"detail": "Token inválido o expirado."}, status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            return Response({"detail": "No se proporcionó un token válido en el encabezado."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateUserProfileView(APIView):
+    """
+    Vista para actualizar el perfil del usuario autenticado.
+    """
+    def put(self, request, *args, **kwargs):
+        # Obtener el token desde la cabecera de autorización
+        auth_header = request.headers.get('Authorization')
+
+        if auth_header:
+            try:
+                # El formato de la cabecera de autorización es 'Bearer <token>'
+                token = auth_header.split(' ')[1]
+                
+                # Validar el token con SimpleJWT
+                access_token = AccessToken(token)
+                
+                # Obtener el usuario asociado al token
+                user = User.objects.get(id=access_token['user_id'])  # Acceso al user_id en el token
+            except (IndexError, ValueError):
+                return Response({"detail": "Token mal formado."}, status=status.HTTP_400_BAD_REQUEST)
+            except (InvalidToken, TokenError) as e:
+                return Response({"detail": "Token inválido o expirado."}, status=status.HTTP_401_UNAUTHORIZED)
+            except User.DoesNotExist:
+                return Response({"detail": "Usuario no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Si el token es válido, proceder a actualizar el perfil
+            serializer = UserSerializer(user, data=request.data, partial=True)
+
+            if serializer.is_valid():
+                serializer.save()  # Guardar los cambios en el usuario
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({"detail": "No se proporcionó token."}, status=status.HTTP_400_BAD_REQUEST)
