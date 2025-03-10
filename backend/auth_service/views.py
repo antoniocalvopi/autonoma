@@ -5,9 +5,12 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.contrib.auth.models import User  # O el modelo de usuario que estés utilizando
+from django.contrib.auth.models import User 
 from rest_framework import status
-from .serializers import UserSerializer  # Asegúrate de tener este serializer
+from .serializers import UserSerializer  
+from rest_framework.decorators import api_view
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
 
 # Vista personalizada para obtener el token
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -117,3 +120,17 @@ class UpdateUserProfileView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         return Response({"detail": "No se proporcionó token."}, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(["GET"])
+def verify_token(request):
+    auth = JWTAuthentication()
+    header = request.headers.get("Authorization", "").split("Bearer ")[-1]
+    
+    if not header:
+        return Response({"error": "Token no proporcionado"}, status=401)
+
+    try:
+        auth.get_validated_token(header)
+        return Response({"message": "Token válido"}, status=200)
+    except Exception as e:
+        return Response({"error": str(e)}, status=401)
